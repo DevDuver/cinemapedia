@@ -33,6 +33,8 @@ class _HomeViewState extends ConsumerState<_HomeView> {
     super.initState();
     ref.read(nowPlayingMoviesProvider.notifier).loadNextPage();
     ref.read(popularMoviesProvider.notifier).loadNextPage();
+    ref.read(upComingMoviesProvider.notifier).loadNextPage();
+    ref.read(topRatedMoviesProvider.notifier).loadNextPage();
   }
 
   @override
@@ -41,6 +43,10 @@ class _HomeViewState extends ConsumerState<_HomeView> {
     final nowPlayingMovies = ref.watch(nowPlayingMoviesProvider);
     final moviesSlideShow = ref.watch(moviesSlideShowProvider);
     final popularMovies = ref.watch(popularMoviesProvider);
+    final upComingMovies = ref.watch(upComingMoviesProvider);
+    final topRatedMovies = ref.watch(topRatedMoviesProvider);
+
+
 
     return CustomScrollView(
       slivers: [
@@ -72,11 +78,11 @@ class _HomeViewState extends ConsumerState<_HomeView> {
                   ),
             
                   MovieHorizontalListView(
-                    movies: nowPlayingMovies,
+                    movies: upComingMovies,
                     title: 'Próximamente',
                     subTitle: 'En este mes',
                     loadNextPage: () {
-                      ref.read(nowPlayingMoviesProvider.notifier).loadNextPage();
+                      ref.read(upComingMoviesProvider.notifier).loadNextPage();
                     },
                   ),
             
@@ -85,6 +91,15 @@ class _HomeViewState extends ConsumerState<_HomeView> {
                     title: 'Populares',
                     loadNextPage: () {
                       ref.read(popularMoviesProvider.notifier).loadNextPage();
+                    },
+                  ),
+
+                  MovieHorizontalListView(
+                    movies: topRatedMovies,
+                    title: 'Mejores películas',
+                    subTitle: 'Desde siempre',
+                    loadNextPage: () {
+                      ref.read(topRatedMoviesProvider.notifier).loadNextPage();
                     },
                   ),
 
