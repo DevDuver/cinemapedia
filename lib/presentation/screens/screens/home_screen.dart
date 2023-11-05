@@ -32,6 +32,7 @@ class _HomeViewState extends ConsumerState<_HomeView> {
   void initState() {
     super.initState();
     ref.read(nowPlayingMoviesProvider.notifier).loadNextPage();
+    ref.read(popularMoviesProvider.notifier).loadNextPage();
   }
 
   @override
@@ -39,20 +40,62 @@ class _HomeViewState extends ConsumerState<_HomeView> {
 
     final nowPlayingMovies = ref.watch(nowPlayingMoviesProvider);
     final moviesSlideShow = ref.watch(moviesSlideShowProvider);
+    final popularMovies = ref.watch(popularMoviesProvider);
 
-    return Column(
-      children: [
+    return CustomScrollView(
+      slivers: [
 
-        const CustomAppbar(),
+        const SliverAppBar(
+          floating: true,
+          flexibleSpace: FlexibleSpaceBar(
+            title: CustomAppbar(),
+            titlePadding: EdgeInsets.zero,
+            centerTitle: false,
+          ),
+        ),
 
-        MoviesSlideShow(movies: moviesSlideShow),
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              return Column(
+                children: [
+            
+                  MoviesSlideShow(movies: moviesSlideShow),
+            
+                  MovieHorizontalListView(
+                    movies: nowPlayingMovies,
+                    title: 'En cines',
+                    subTitle: '2 noviembre',
+                    loadNextPage: () {
+                      ref.read(nowPlayingMoviesProvider.notifier).loadNextPage();
+                    },
+                  ),
+            
+                  MovieHorizontalListView(
+                    movies: nowPlayingMovies,
+                    title: 'Próximamente',
+                    subTitle: 'En este mes',
+                    loadNextPage: () {
+                      ref.read(nowPlayingMoviesProvider.notifier).loadNextPage();
+                    },
+                  ),
+            
+                  MovieHorizontalListView(
+                    movies: popularMovies,
+                    title: 'Populares',
+                    loadNextPage: () {
+                      ref.read(popularMoviesProvider.notifier).loadNextPage();
+                    },
+                  ),
 
-        MovieHorizontalListView(
-          movies: nowPlayingMovies,
-          title: 'En cines',
-          subTitle: '2 noviembre',
-        )
-      ],
+                  const SizedBox(height: 20)
+                ],
+              );
+            },
+            childCount: 1,
+          )
+        ),
+      ]
     );
   }
 }
