@@ -10,56 +10,40 @@ typedef SearchMovieCallback = Future<List<Movie>> Function(String query);
 class SearchMovieDelegate extends SearchDelegate<Movie?>{
 
   final SearchMovieCallback searchMovies;
+  List<Movie> initialMovies;
+
   StreamController<List<Movie>> debouncedMovies = StreamController.broadcast();
+  StreamController<bool> isLoadingStream = StreamController.broadcast();
+  
   Timer? _debouncedTimer;
 
   SearchMovieDelegate({
     required this.searchMovies,
+    required this.initialMovies
   });
 
+  void clearStreams() {
+    debouncedMovies.close();
+    isLoadingStream.close();
+  }
+
   void _onQueryChange(String query) {
+    isLoadingStream.add(true);
+
     if (_debouncedTimer?.isActive ?? false) _debouncedTimer!.cancel();
 
-    _debouncedTimer = Timer(const Duration(milliseconds: 500), () { 
+    _debouncedTimer = Timer(const Duration(milliseconds: 500), () async { 
 
+      final movies = await searchMovies(query);
+      debouncedMovies.add(movies);
+      isLoadingStream.add(false);
+      initialMovies = movies;
      });
   }
 
-  @override
-  String get searchFieldLabel => 'Buscar pelídula';
-
-  @override
-  List<Widget>? buildActions(BuildContext context) {
-    return [
-      FadeIn(
-        animate: query.isNotEmpty,
-        child: IconButton(
-          onPressed: () => query = '', 
-          icon: const Icon(Icons.clear)
-        ),
-      ),
-  ];
-  }
-
-  @override
-  Widget? buildLeading(BuildContext context) {
-    return IconButton(
-      onPressed: () => close(context, null), 
-      icon: const Icon(Icons.arrow_back_ios_new_rounded)
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    return const Text('BuildResults');
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-
-    _onQueryChange(query);
-
+  Widget _buildResultsAndSuggestions() {
     return StreamBuilder(
+      initialData: initialMovies,
       stream: debouncedMovies.stream,
       builder: (context, snapshot) {
         final List<Movie> movies = snapshot.data ?? [];
@@ -69,12 +53,74 @@ class SearchMovieDelegate extends SearchDelegate<Movie?>{
           itemBuilder: (context, index) {
             return _MovieItem(
               movie : movies[index],
-              onMovieSelected: close,
+              onMovieSelected: (context, movie) {
+                clearStreams();
+                close(context, movie);
+              }
             );
           }
         );
       }
     );
+  }
+
+  @override
+  String get searchFieldLabel => 'Buscar película';
+
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      StreamBuilder(
+        stream: isLoadingStream.stream, 
+        builder: (context, snapshot) {
+          final bool isLoading = snapshot.data ?? false;
+
+          if (isLoading) {
+            return SpinPerfect(
+              duration: const Duration(seconds: 20),
+              spins: 10,
+              infinite: true,
+              child: IconButton(
+                onPressed: () => query = '', 
+                icon: const Icon(Icons.refresh_rounded)
+              ),
+            );
+          } else {
+            return FadeIn(
+              animate: query.isNotEmpty,
+              child: IconButton(
+                onPressed: () => query = '', 
+                icon: const Icon(Icons.clear)
+              ),
+            );
+          }
+        }
+      )
+  ];
+  }
+
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      onPressed: () {
+        clearStreams();
+        close(context, null);
+      },
+      icon: const Icon(Icons.arrow_back_ios_new_rounded)
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    return _buildResultsAndSuggestions();
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+
+    _onQueryChange(query);
+
+    return _buildResultsAndSuggestions();
   }
 
 }
